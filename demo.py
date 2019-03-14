@@ -7,8 +7,9 @@ app = Flask(__name__)
 
 print("Preparing model")
 start_time = time.time()
-#textGenerator = TextGenerator('./data/FinalResult.csv', 'Text', 'Subject')
-textGenerator = TextGenerator('./data/news_summary_more.csv', 'text', 'headlines')
+textGenerator = TextGenerator(
+    './data/SubjectsQuestions100k.csv', 'Text', 'Subject')
+#textGenerator = TextGenerator('./data/news_summary_more.csv', 'text', 'headlines')
 print("Model is ready")
 print(time.time() - start_time, "seconds")
 
