@@ -6,8 +6,8 @@ import re
 
 class TextGenerator:
     def __init__(self, file_name, text_col, headline_col):
-        self.encoder_model = load_model('./data/encoder-model-1.h5')
-        self.decoder_model = load_model('./data/decoder-model-1.h5')
+        self.encoder_model = load_model('./data/encoder-model-2.h5')
+        self.decoder_model = load_model('./data/decoder-model-2.h5')
         self.load_data(file_name, text_col, headline_col)
 
     def unique_chars(self, p_list):
@@ -23,7 +23,7 @@ class TextGenerator:
         DataSet[col_name] = DataSet[col_name].str.replace('\t', ' ')
         DataSet[col_name] = DataSet[col_name].str.strip()
 
-    def load_data(self, file_name, text_col, headline_col, encoding="ISO-8859–1"):
+    def load_data(self, file_name, text_col, headline_col, encoding="ansi"):
         DataSet = pd.read_csv(file_name, encoding=encoding)
 
         col_list = [text_col, headline_col]
@@ -32,6 +32,7 @@ class TextGenerator:
 
         self.clean(DataSet, text_col)
         self.clean(DataSet, headline_col)
+        DataSet['Subject'] = '\t'+ DataSet['Subject'] + '\n'
 
         self.max_input_len = DataSet[text_col].str.len().max()
         self.max_output_len = DataSet[headline_col].str.len().max()
@@ -41,7 +42,7 @@ class TextGenerator:
 
         p_chars = self.unique_chars(self.texts)
         h_chars = self.unique_chars(self.headlines)
-        self.vocabulary = list(set(p_chars + h_chars))
+        self.vocabulary = sorted(list(set(p_chars + h_chars)))
 
         self.token_index = dict(
             [(char, i) for i, char in enumerate(self.vocabulary)])
