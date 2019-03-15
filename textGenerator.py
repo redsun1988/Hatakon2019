@@ -2,53 +2,23 @@ import numpy as np
 from keras.models import load_model
 import pandas as pd
 import re
-
+import json
 
 class TextGenerator:
-    def __init__(self, file_name, text_col, headline_col):
-        self.encoder_model = load_model('./data/encoder-model-2.h5')
-        self.decoder_model = load_model('./data/decoder-model-2.h5')
-        self.load_data(file_name, text_col, headline_col)
+    def __init__(self, encoderModelPath, decoderModelPath, hyperParamsFilePath):
+        self.encoder_model = load_model(encoderModelPath)
+        self.decoder_model = load_model(decoderModelPath)
+        self.load_data(hyperParamsFilePath)
 
-    def unique_chars(self, p_list):
-        return list(set((''.join([''.join(set(p)) for p in p_list]))))
-
-    def clean(self, DataSet, col_name):
-        DataSet[col_name] = DataSet[col_name].str.replace('<br>', ' ')
-        DataSet[col_name] = DataSet[col_name].str.replace('<br />', ' ')
-        DataSet[col_name] = DataSet[col_name].apply(
-            lambda x: re.sub('<[^<]+?>', ' ', x))
-        DataSet[col_name] = DataSet[col_name].str.replace('&nbsp;', ' ')
-        DataSet[col_name] = DataSet[col_name].str.replace('\n', ' ')
-        DataSet[col_name] = DataSet[col_name].str.replace('\t', ' ')
-        DataSet[col_name] = DataSet[col_name].str.strip()
-
-    def load_data(self, file_name, text_col, headline_col, encoding="ansi"):
-        DataSet = pd.read_csv(file_name, encoding=encoding)
-
-        col_list = [text_col, headline_col]
-        DataSet = DataSet[col_list]
-        DataSet.dropna(inplace=True)
-
-        self.clean(DataSet, text_col)
-        self.clean(DataSet, headline_col)
-        DataSet['Subject'] = '\t'+ DataSet['Subject'] + '\n'
-
-        self.max_input_len = DataSet[text_col].str.len().max()
-        self.max_output_len = DataSet[headline_col].str.len().max()
-
-        self.texts = DataSet[text_col].values
-        self.headlines = DataSet[headline_col].values
-
-        p_chars = self.unique_chars(self.texts)
-        h_chars = self.unique_chars(self.headlines)
-        self.vocabulary = sorted(list(set(p_chars + h_chars)))
-
-        self.token_index = dict(
-            [(char, i) for i, char in enumerate(self.vocabulary)])
-
+    def load_data(self, hyperParamsFilePath):
+        with open(hyperParamsFilePath) as json_file:  
+           data = json.load(json_file)
+        self.max_input_len = data['max_input_len']
+        self.max_output_len = data['max_output_len']
+        self.token_index = data['token_index']
         self.reverse_token_index = dict(
             (i, char) for char, i in self.token_index.items())
+        self.vocabulary = data['vocabulary']
         self.vocab_size = len(self.vocabulary)
 
     def decode_sequence(self, input_seq):
