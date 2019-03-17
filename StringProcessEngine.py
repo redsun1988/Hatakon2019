@@ -9,7 +9,7 @@ class StringProcessEngine:
     def clean(self, string):
         string = string.replace('<br>', ' ').replace('<br />', ' ').replace('&nbsp;', ' ')
         string = re.sub('<[^<]+?>', ' ', string)
-        string = string.replace('\n', ' ').replace('\t', ' ').strip()
+        string = string.replace('\n', ' ').replace('\t', ' ').replace("\r", " ").strip()
         return string
 
 #region Tests (kind of tests ^_^ )

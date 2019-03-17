@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from keras.models import load_model
 import pandas as pd
 import re
@@ -7,6 +8,7 @@ import json
 class TextGenerator:
     def __init__(self, encoderModelPath, decoderModelPath, hyperParamsFilePath):
         self.encoder_model = load_model(encoderModelPath)
+        self.graph = tf.get_default_graph()
         self.decoder_model = load_model(decoderModelPath)
         self.load_data(hyperParamsFilePath)
 
@@ -23,7 +25,8 @@ class TextGenerator:
 
     def decode_sequence(self, input_seq):
         # Encode the input as state vectors.
-        states_value = self.encoder_model.predict(input_seq)
+        with self.graph.as_default():
+            states_value = self.encoder_model.predict(input_seq)
 
         # Generate empty target sequence of length 1.
         target_seq = np.zeros((1, 1, self.vocab_size))
@@ -34,27 +37,28 @@ class TextGenerator:
         # (to simplify, here we assume a batch of size 1).
         stop_condition = False
         decoded_sentence = ''
-        while not stop_condition:
-            output_tokens, h, c = self.decoder_model.predict(
-                [target_seq] + states_value)
+        with self.graph.as_default():
+            while not stop_condition:
+                output_tokens, h, c = self.decoder_model.predict(
+                   [target_seq] + states_value)
 
-            # Sample a token
-            sampled_token_index = np.argmax(output_tokens[0, -1, :])
-            sampled_char = self.reverse_token_index[sampled_token_index]
-            decoded_sentence += sampled_char
+                # Sample a token
+                sampled_token_index = np.argmax(output_tokens[0, -1, :])
+                sampled_char = self.reverse_token_index[sampled_token_index]
+                decoded_sentence += sampled_char
 
-            # Exit condition: either hit max length
-            # or find stop character.
-            if (sampled_char == '\n' or
-                    len(decoded_sentence) > self.max_output_len):
-                stop_condition = True
+                # Exit condition: either hit max length
+                # or find stop character.
+                if (sampled_char == '\n' or
+                   len(decoded_sentence) > self.max_output_len):
+                   stop_condition = True
 
-            # Update the target sequence (of length 1).
-            target_seq = np.zeros((1, 1, self.vocab_size))
-            target_seq[0, 0, sampled_token_index] = 1.
+                # Update the target sequence (of length 1).
+                target_seq = np.zeros((1, 1, self.vocab_size))
+                target_seq[0, 0, sampled_token_index] = 1.
 
-            # Update states
-            states_value = [h, c]
+                # Update states
+                states_value = [h, c]
 
         return decoded_sentence
 

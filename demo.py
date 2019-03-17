@@ -11,9 +11,9 @@ print("Preparing model")
 start_time = time.time()
 
 textGenerator = TextGenerator(
-        './data/encoder-model-ascending-192.h5',
-        './data/decoder-model-ascending-192.h5',
-        './data/hyper.json')
+        './data/encoder-model-ascending-2.h5',
+        './data/decoder-model-ascending-2.h5',
+        './data/hyper-ascending-2.json')
 engine = StringProcessEngine()
 
 print("Model is ready")
