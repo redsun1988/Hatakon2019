@@ -1,6 +1,6 @@
 #This file is used to generate new RNR models and save them to files
 from TrainTestSplit import TrainTestSplit
-from DataGenerator import TrainTestSplit
+from DataGenerator import DataGenerator
 
 import pandas as pd
 import numpy as np
@@ -43,6 +43,9 @@ class ModelBuilder:
        self.latent_dim = 256
        
        self.saveMetaInfoToJSON()
+       self.__BuildGenerators()
+       self.__InitModel()
+
 
     def uniqueChars(self, p_list):
        return list(set((''.join([''.join(set(p)) for p in p_list]))))
@@ -65,6 +68,47 @@ class ModelBuilder:
         return datetime.datetime.now().strftime("%B_%d_%Y_%I-%M%p")
 
     def __BuildGenerators(self):
-        dataTrain, labelsTrain, dataTest, labelsTest = TrainTestSplit(self.data, self.labels);
-        self.train_generator = DataGenerator(dataTrain, labelsTrain)
-        self.valid_generator = DataGenerator(dataTest, labelsTest)
+        dataTrain, labelsTrain, dataTest, labelsTest = TrainTestSplit(self.data, self.labels, .95)
+        self.train_generator = DataGenerator(dataTrain, labelsTrain, self.batch_size, self.vocab_size, self.max_input_len, self.max_output_len, self.token_index)
+        self.valid_generator = DataGenerator(dataTest, labelsTest, self.batch_size, self.vocab_size, self.max_input_len, self.max_output_len, self.token_index)
+
+    def __InitModel(self):
+      ##Build model
+      
+      # Define an input sequence and process it.
+      encoder_inputs = Input(shape=(None, self.vocab_size))
+      encoder = LSTM(self.latent_dim, return_state=True)
+      encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+      # We discard `encoder_outputs` and only keep the states.
+      encoder_states = [state_h, state_c]
+      
+      # Set up the decoder, using `encoder_states` as initial state.
+      decoder_inputs = Input(shape=(None, self.vocab_size))
+      # We set up our decoder to return full output sequences,
+      # and to return internal states as well. We don't use the
+      # return states in the training model, but we will use them in inference.
+      decoder_lstm = LSTM(self.latent_dim, return_sequences=True, return_state=True)
+      decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
+                                           initial_state=encoder_states)
+      decoder_dense = Dense(self.vocab_size, activation='softmax')
+      decoder_outputs = decoder_dense(decoder_outputs)
+      
+      # Define the model that will turn
+      # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
+      self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+      
+      fname = "./data/model_weights"+self.getCurrentDateAsString()+".h5"
+      
+      if os.path.isfile(fname):
+          self.model.load_weights(fname)
+      
+      # Run training
+      
+      adam_optimiser = Adam(lr=0.0016, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+      
+      self.model.compile(optimizer=adam_optimiser, loss='categorical_crossentropy', metrics=['accuracy'])
+      self.model.summary()
+
+if __name__ == "__main__":
+   mBuilder = ModelBuilder('./data/SubjectsQuestionsAllExtended.csv', 'Text', 'Subject', 75)
+   
