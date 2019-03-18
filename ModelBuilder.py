@@ -1,4 +1,7 @@
 #This file is used to generate new RNR models and save them to files
+from TrainTestSplit import TrainTestSplit
+from DataGenerator import TrainTestSplit
+
 import pandas as pd
 import numpy as np
 import re
@@ -24,13 +27,13 @@ class ModelBuilder:
 
     def __init__(self, csfFilePath, originTextColumnName, targetTextColumnName, percent):
        #'./data/SubjectsQuestionsAllExtended.csv', 'Text', 'Subject', 75
-       paragraphs, headlines, max_input_len, max_output_len = read_csv(csfFilePath, originTextColumnName, targetTextColumnName, percent)
-       self.paragraphs = paragraphs
-       self.headlines = headlines
+       data, labels, max_input_len, max_output_len = read_csv(csfFilePath, originTextColumnName, targetTextColumnName, percent)
+       self.data = data
+       self.labels = labels
        self.max_input_len = max_input_len
        self.max_output_len = max_output_len
        
-       self.vocabulary = sorted(list(set(self.uniqueChars(paragraphs) + self.uniqueChars(headlines))))
+       self.vocabulary = sorted(list(set(self.uniqueChars(data) + self.uniqueChars(labels))))
        self.token_index = dict([(char, i) for i, char in enumerate(self.vocabulary)])
        self.reverse_token_index = dict([(i, char) for char, i in self.token_index.items()])
 
@@ -38,7 +41,6 @@ class ModelBuilder:
        self.batch_size = 72
        self.vocab_size = len(self.vocabulary)
        self.latent_dim = 256
-       self.num_examples = len(self.paragraphs)
        
        self.saveMetaInfoToJSON()
 
@@ -61,3 +63,8 @@ class ModelBuilder:
 
     def getCurrentDateAsString(self):
         return datetime.datetime.now().strftime("%B_%d_%Y_%I-%M%p")
+
+    def __BuildGenerators(self):
+        dataTrain, labelsTrain, dataTest, labelsTest = TrainTestSplit(self.data, self.labels);
+        self.train_generator = DataGenerator(dataTrain, labelsTrain)
+        self.valid_generator = DataGenerator(dataTest, labelsTest)
