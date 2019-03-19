@@ -2,8 +2,8 @@ __author__ = 'xead'
 from codecs import open
 import time
 from flask import Flask, render_template, request
-from TextGenerator import TextGenerator
-from StringProcessor import StringProcessor
+from modeling.TextGenerator import TextGenerator
+from modeling.StringProcessor import StringProcessor
 
 app = Flask(__name__)
 
