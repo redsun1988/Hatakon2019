@@ -1,4 +1,5 @@
 import pandas as pd
+from StringProcessor import StringProcessor
 import re
 
 
@@ -11,6 +12,8 @@ def remove_multiple_spaces(text):
 
 
 def clean_column(df, col_name):
+    df[col_name] = df[col_name].apply(StringProcessor.Clean)
+    """
     df[col_name] = df[col_name].str.replace('<br>', ' ')
     df[col_name] = df[col_name].str.replace('<br />', ' ')
     df[col_name] = df[col_name].apply(remove_tags)
@@ -19,6 +22,7 @@ def clean_column(df, col_name):
     df[col_name] = df[col_name].str.replace('\n', ' ')
     df[col_name] = df[col_name].str.replace('\t', ' ')
     df[col_name] = df[col_name].str.strip()
+    """
 
 
 def read_csv(file_path, text_col_name, head_col_name, rows_fraction=100):

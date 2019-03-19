@@ -2,18 +2,10 @@
 from TrainTestSplit import TrainTestSplit
 from DataGenerator import DataGenerator
 from StringProcessor import StringProcessor
+from ModelSerializer import ModelSerializer 
 
-import pandas as pd
 import numpy as np
-import re
-import os
 import tensorflow as tf
-import nltk
-import json
-import datetime
-
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -22,7 +14,7 @@ from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 from keras.callbacks import TensorBoard, LambdaCallback
 
-from modeling.data import read_csv
+from DataLoader import read_csv
 
 class ModelBuilder:
 
@@ -42,26 +34,13 @@ class ModelBuilder:
        self.vocab_size = len(self.vocabulary)
        self.latent_dim = 256
        
-       self.saveMetaInfoToJSON()
+       #Save some parametrs
+       ModelSerializer.saveMetaInfoToJSON(self.vocabulary, 
+       self.token_index, self.reverse_token_index, 
+       self.batch_size, self.vocab_size, self.latent_dim)
+       
        self.__BuildGenerators()
        self.__InitModel()
-
-    def saveMetaInfoToJSON(self):
-        data = {}  
-        data['vocabulary'] = self.vocabulary
-        data['reverse_token_index'] = self.reverse_token_index
-        data['token_index'] = self.token_index
-        data['max_input_len'] = int(self.max_input_len)
-        data['max_output_len'] = int(self.max_output_len)
-        data['vocab_size'] = int(self.vocab_size)
-
-        
-        path = "./data/metaParams"+self.getCurrentDateAsString()+".json"
-        with open(path, 'w') as outfile:  
-            json.dump(data, outfile)
-
-    def getCurrentDateAsString(self):
-        return datetime.datetime.now().strftime("%B_%d_%Y_%I-%M%p")
 
     def __BuildGenerators(self):
         dataTrain, labelsTrain, dataTest, labelsTest = TrainTestSplit(self.data, self.labels, .95)
@@ -91,26 +70,23 @@ class ModelBuilder:
       
       # Define the model that will turn
       # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-      self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-      
-      fname = "./data/model_weights"+self.getCurrentDateAsString()+".h5"
-      
-      if os.path.isfile(fname):
-          self.model.load_weights(fname)
-      
+      self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)  
       # Run training
       
       adam_optimiser = Adam(lr=0.0016, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
       
       self.model.compile(optimizer=adam_optimiser, loss='categorical_crossentropy', metrics=['accuracy'])
 
-    def fit(self):
+    def fit(self, stepsPerEpoch=5, epochs=1, validationSteps=10):
         self.model.fit_generator(self.train_generator,
-                    steps_per_epoch=5,
-                    epochs=1,
+                    stepsPerEpoch,
+                    epochs,
                     validation_data=self.valid_generator,
-                    validation_steps=10,
+                    validation_steps=validationSteps,
                     callbacks=[])
+
+    def LoadModel(self, fname):
+        self.model.load_weights(fname)
 
     def ShowModelSummary(self):
       self.model.summary()

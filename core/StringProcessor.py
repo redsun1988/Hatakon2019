@@ -30,14 +30,6 @@ class StringProcessor:
     def GetReversTokenIndex(vocabulary):
        return dict([(i, char) for char, i in enumerate(vocabulary)])
 
-    def fit(self):
-        self.model.fit_generator(self.train_generator,
-                    steps_per_epoch=5,
-                    epochs=1,
-                    validation_data=self.valid_generator,
-                    validation_steps=10,
-                    callbacks=[])
-
 #region Tests (kind of tests ^_^ )
 if __name__ == "__main__":
    #region RemoveLoops Test
