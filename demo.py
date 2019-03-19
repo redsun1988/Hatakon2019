@@ -3,7 +3,7 @@ from codecs import open
 import time
 from flask import Flask, render_template, request
 from TextGenerator import TextGenerator
-from StringProcessEngine import StringProcessEngine
+from StringProcessor import StringProcessor
 
 app = Flask(__name__)
 
@@ -14,7 +14,6 @@ textGenerator = TextGenerator(
         './data/encoder-model-test.h5',
         './data/decoder-model-test.h5',
         './data/hyper-test.json')
-engine = StringProcessEngine()
 
 print("Model is ready")
 print(time.time() - start_time, "seconds")
@@ -27,9 +26,9 @@ def index_page(questionText="a dummy question"):
      print(questionText)
      
      #predict a subject
-     questionText = engine.clean(questionText)
+     questionText = StringProcessor.Clean(questionText)
      subject = textGenerator.predict(questionText)
-     subject = engine.RemoveLoops(subject)
+     subject = StringProcessor.RemoveLoops(subject)
      print(subject)
 
    return render_template('hello.html', questionText=questionText, subject=subject)

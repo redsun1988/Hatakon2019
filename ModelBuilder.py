@@ -1,6 +1,7 @@
 #This file is used to generate new RNR models and save them to files
 from TrainTestSplit import TrainTestSplit
 from DataGenerator import DataGenerator
+from StringProcessor import StringProcessor
 
 import pandas as pd
 import numpy as np
@@ -26,16 +27,15 @@ from modeling.data import read_csv
 class ModelBuilder:
 
     def __init__(self, csfFilePath, originTextColumnName, targetTextColumnName, percent):
-       #'./data/SubjectsQuestionsAllExtended.csv', 'Text', 'Subject', 75
        data, labels, max_input_len, max_output_len = read_csv(csfFilePath, originTextColumnName, targetTextColumnName, percent)
        self.data = data
        self.labels = labels
        self.max_input_len = max_input_len
        self.max_output_len = max_output_len
        
-       self.vocabulary = sorted(list(set(self.uniqueChars(data) + self.uniqueChars(labels))))
-       self.token_index = dict([(char, i) for i, char in enumerate(self.vocabulary)])
-       self.reverse_token_index = dict([(i, char) for char, i in self.token_index.items()])
+       self.vocabulary = StringProcessor.GetUniqueChars(list(data) + list(labels)) 
+       self.token_index = StringProcessor.GetReversTokenIndex(self.vocabulary) 
+       self.reverse_token_index = StringProcessor.GetReversTokenIndex(self.vocabulary) 
 
        #Some metaparameters for learning
        self.batch_size = 72
@@ -45,10 +45,6 @@ class ModelBuilder:
        self.saveMetaInfoToJSON()
        self.__BuildGenerators()
        self.__InitModel()
-
-
-    def uniqueChars(self, p_list):
-       return list(set((''.join([''.join(set(p)) for p in p_list]))))
 
     def saveMetaInfoToJSON(self):
         data = {}  
@@ -107,8 +103,26 @@ class ModelBuilder:
       adam_optimiser = Adam(lr=0.0016, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
       
       self.model.compile(optimizer=adam_optimiser, loss='categorical_crossentropy', metrics=['accuracy'])
+
+    def fit(self):
+        self.model.fit_generator(self.train_generator,
+                    steps_per_epoch=5,
+                    epochs=1,
+                    validation_data=self.valid_generator,
+                    validation_steps=10,
+                    callbacks=[])
+
+    def ShowModelSummary(self):
       self.model.summary()
 
+#region Tests (kind of tests ^_^ )
 if __name__ == "__main__":
-   mBuilder = ModelBuilder('./data/SubjectsQuestionsAllExtended.csv', 'Text', 'Subject', 75)
-   
+   #region ModelBuilder can be created test
+   mBuilder = ModelBuilder('./data/SubjectsQuestions100k.csv', 'Text', 'Subject', 75)
+   #endregion
+
+   #region ModelBuilder fit test
+   mBuilder.fit()
+   #endregion
+
+#endregion
